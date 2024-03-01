@@ -61,7 +61,7 @@ int main(int argc, char * argv[]) {
     Wavelet *wavelet;
     
     //Initialize a Morlet wavelet having sigma=1.0;
-    static MorletStatic<n> morl(1.0f);
+    MorletStatic<n> morl(1.0f);
     // Morlet morl(1.0f);
     wavelet = &morl;
 
