@@ -23,14 +23,14 @@ using namespace std;
 
 int main(int argc, char * argv[]) {
     
-    int n = 1000; //signal length
+    constexpr int n = 1000; //signal length
     const int fs = 1000; //sampling frequency
     float twopi = 2.0*3.1415;
     
     //3000 frequencies spread logartihmically between 1 and 32 Hz
     const float f0 = 0.1;
     const float f1 = 20;
-    const int fn = 200;
+    constexpr int fn = 200;
 
     //Define number of threads for multithreaded use
     const int nthreads = 8;
@@ -61,7 +61,8 @@ int main(int argc, char * argv[]) {
     Wavelet *wavelet;
     
     //Initialize a Morlet wavelet having sigma=1.0;
-    Morlet morl(1.0f);
+    static MorletStatic<n> morl(1.0f);
+    // Morlet morl(1.0f);
     wavelet = &morl;
 
     //Other wavelets are also possible
@@ -87,7 +88,7 @@ int main(int argc, char * argv[]) {
     //f0        - beginning of frequency range
     //f1        - end of frequency range
     //fn        - number of wavelets to generate across frequency range
-    Scales scs(wavelet, FCWT_LINFREQS, fs, f0, f1, fn);
+    ScalesStatic<fn> scs(wavelet, FCWT_LINFREQS, fs, f0, f1, fn);
 
     //Perform a CWT
     //cwt(input, length, output, scales)
@@ -98,13 +99,18 @@ int main(int argc, char * argv[]) {
     //output    - floating pointer to output array
     //scales    - pointer to scales object
     fcwt.cwt(&sigc[0], n, &tfm[0], &scs);
-        
+
     //End timing
     auto finish = chrono::high_resolution_clock::now();
 
     //Calculate total duration
     chrono::duration<double> elapsed = finish - start;
     
+    for(auto fl : tfm) {
+        printf("%f\n", fl);
+    }
+
+
     cout << "=== fCWT example ===" << endl;
     cout << "Calculate CWT of a 100k sample sinusodial signal using a [" << f0 << "-" << f1 << "] Hz linear frequency range and " << fn << " wavelets." << endl;
     cout << "====================" << endl;

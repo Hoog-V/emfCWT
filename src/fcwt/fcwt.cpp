@@ -83,6 +83,7 @@ void Morlet::generate(float* real, float* imag, int size, float scale) {
     //cout << "]" << endl;
 }
 
+
 void Morlet::getWavelet(float scale, complex<float>* pwav, int pn) {
     int w = getSupport(scale);
 
@@ -108,7 +109,7 @@ void Morlet::getWavelet(float scale, complex<float>* pwav, int pn) {
 //================== Scales =====================================//
 //==============================================================//
 
-Scales::Scales(Wavelet *wav, SCALETYPE st, int afs, float af0, float af1, int afn) {
+ScalesDynamic::ScalesDynamic(Wavelet *wav, SCALETYPE st, int afs, float af0, float af1, int afn) {
     
     fs = afs;
     scales = (float*)malloc(afn*sizeof(float));
@@ -124,19 +125,19 @@ Scales::Scales(Wavelet *wav, SCALETYPE st, int afs, float af0, float af1, int af
 
 }
 
-void Scales::getScales(float *pfreqs, int pnf) { 
+void ScalesDynamic::getScales(float *pfreqs, int pnf) { 
     for(int i=0;i<pnf;i++) { 
         pfreqs[i]=scales[i]; 
     }; 
 };
 
-void Scales::getFrequencies(float *pfreqs, int pnf) { 
+void ScalesDynamic::getFrequencies(float *pfreqs, int pnf) { 
     for(int i=0;i<pnf;i++) { 
         pfreqs[i]=((float)fs)/scales[i]; 
     }; 
 };
 
-void Scales::calculate_logscale_array(float base, float four_wavl, int fs, float f0, float f1, int fn) {
+void ScalesDynamic::calculate_logscale_array(float base, float four_wavl, int fs, float f0, float f1, int fn) {
     
     //If a signal has fs=100hz and you want to measure [0.1-50]Hz, you need scales 2 to 1000;
     float nf0 = f0;
@@ -157,7 +158,7 @@ void Scales::calculate_logscale_array(float base, float four_wavl, int fs, float
     }
 }
 
-void Scales::calculate_linfreq_array(float four_wavl, int fs, float f0, float f1, int fn) {
+void ScalesDynamic::calculate_linfreq_array(float four_wavl, int fs, float f0, float f1, int fn) {
     
     float nf0 = f0;
     float nf1 = f1;
@@ -172,7 +173,7 @@ void Scales::calculate_linfreq_array(float four_wavl, int fs, float f0, float f1
     }
 }
 
-void Scales::calculate_linscale_array(float four_wavl, int fs, float f0, float f1, int fn) {
+void ScalesDynamic::calculate_linscale_array(float four_wavl, int fs, float f0, float f1, int fn) {
     
     float nf0 = f0;
     float nf1 = f1;
@@ -206,8 +207,11 @@ void FCWT::daughter_wavelet_multiplication(fftwf_complex *input, fftwf_complex *
         //has avx instructions
         __m256* O8 = (__m256*)output;
         __m256* I8 = (__m256*)input;
+        /* Create 8 element vector with value assigned to step*/
         __m256 step4 = _mm256_set1_ps(step);
+        /* Set vector offset */
         __m256 offset = _mm256_set_ps(3,3,2,2,1,1,0,0);
+        /* Maximum is set to */
         __m256 maximum = _mm256_set1_ps(isizef-1);
         
         int athreads = min(threads,max(1,endpoint4/16));
@@ -224,8 +228,10 @@ void FCWT::daughter_wavelet_multiplication(fftwf_complex *input, fftwf_complex *
             for(int q4=start; q4<end; q4++) {
                 float q = (float)q4*4;
 
+                /* Create 8-float vector with all elements equal to 4.0f * q4 */
                 __m256 qq = _mm256_set1_ps(q);
-                
+
+                /* */
                 U256f tmp = {_mm256_min_ps(maximum,_mm256_mul_ps(step4,_mm256_add_ps(qq,offset)))};
                 //U256f tmp = {_mm256_mul_ps(step4,_mm256_add_ps(qq,offset))};
 
@@ -270,7 +276,7 @@ void FCWT::daughter_wavelet_multiplication(fftwf_complex *input, fftwf_complex *
                     } else {
                         O8[s4-q4] = _mm256_mul_ps(I8[s4-q4],wav);
                     }
-                }
+               }
             }
         }
     #else
@@ -500,7 +506,6 @@ void FCWT::cwt(float *pinput, int psize, complex<float>* poutput, Scales *scales
     free(input);
     
     pinv = fftwf_plan_dft_1d(newsize, O1, (fftwf_complex*)poutput, FFTW_BACKWARD, FFTW_ESTIMATE);
-    
     //Generate mother wavelet function
     wavelet->generate(newsize);
     
